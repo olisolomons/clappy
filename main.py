@@ -2,6 +2,7 @@
 import dataclasses
 import time
 from threading import Thread
+from typing import Union
 
 import settings
 from clappy_sequence import ClappySequence
@@ -23,7 +24,7 @@ def press(device, key):
         )
 
 
-def clappy(verbose=False, threshold='auto'):
+def clappy(verbose: bool = False, threshold: Union[int, str] = 'auto'):
     print('Listening for claps!')
     use_settings = dataclasses.replace(settings.default_settings, threshold=threshold)
 
@@ -34,7 +35,7 @@ def clappy(verbose=False, threshold='auto'):
 
     if threshold == 'auto':
         def turn_off_auto_delayed():
-            time.sleep(10)
+            time.sleep(5)
             clappy_sequence.clappy.auto_threshold = False
             threshold = clappy_sequence.clappy.settings.threshold
             print(f'Auto threshold tuning turned off, {threshold=}')

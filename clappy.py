@@ -27,7 +27,7 @@ class AudioStream:
 
 
 class Clappy:
-    def __init__(self, on_clap: Callable[[], Any], settings: Settings = default_settings) -> None:
+    def __init__(self, on_clap: Callable[[int], Any], settings: Settings = default_settings) -> None:
         self.audio: Optional[pyaudio.PyAudio] = None
         self.amplitudes_history: Optional[np.ndarray] = None
         self.sample_rate: Optional[int] = None
@@ -91,34 +91,37 @@ class Clappy:
 
     def listen(self, stream: Union[Generator[np.ndarray, bool, Any], Iterable[np.ndarray]] = None, *, verbose=False):
         stream = self.stream() if stream is None else stream
+        frame_count = 0
+        last_clap = 0
 
         try:
             while True:
-                for _ in range(self.amplitudes_history.size + 1):
-                    self.record_frame(stream)
-                while True:
-                    self.record_frame(stream)
+                self.record_frame(stream)
 
-                    # find peaks
-                    gaussian_laplace_results = gaussian_laplace(
-                        self.amplitudes_history,
-                        sigma=self.settings.gaussian_laplace_sigma,
-                        mode='nearest'
-                    )
-                    gmax = gaussian_laplace_results.max()
-                    if verbose:
-                        print(f'{gmax=}')
+                # find peaks
+                gaussian_laplace_results = gaussian_laplace(
+                    self.amplitudes_history,
+                    sigma=self.settings.gaussian_laplace_sigma,
+                    mode='nearest'
+                )
+                max_index = gaussian_laplace_results[last_clap:].argmax() + last_clap
+                max_value = gaussian_laplace_results[max_index]
+                if verbose:
+                    print(f'{max_value=}')
 
-                    if gmax > self.settings.threshold:
-                        self.on_clap()
+                if max_value > self.settings.threshold and max_index < gaussian_laplace_results.size - 3:
+                    self.on_clap(frame_count - gaussian_laplace_results.size + max_index)
+                    last_clap = gaussian_laplace_results.size
 
-                        self.amplitudes_history[:] = self.amplitudes_history[-1]
+                    self.amplitudes_history[:] = self.amplitudes_history[-1]
 
-                        if self.auto_threshold:
-                            new_threshold = max(int(gmax * AUTO_THRESHOLD_FRACTION), self.settings.threshold)
-                            self.settings = dataclasses.replace(self.settings, threshold=new_threshold)
+                    if self.auto_threshold:
+                        new_threshold = max(int(max_value * AUTO_THRESHOLD_FRACTION), self.settings.threshold)
+                        self.settings = dataclasses.replace(self.settings, threshold=new_threshold)
 
-                        break
+                frame_count += 1
+                last_clap = max(last_clap - 1, 0)
+
         except KeyboardInterrupt:
             stream.stop()
         except StopIteration:

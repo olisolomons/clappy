@@ -4,6 +4,7 @@ from threading import Lock, Thread
 import numpy as np
 
 from clappy import Clappy
+from constants import CHUNK
 from settings import Settings, default_settings
 
 
@@ -21,7 +22,7 @@ class ClappySequence:
         self.sequence_wait_thread = None
         self.lock = Lock()
 
-    def on_clap(self):
+    def on_clap(self, clap_frame_number):
         print('clap')
         with self.lock:
             t = time.time()

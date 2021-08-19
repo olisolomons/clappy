@@ -8,9 +8,9 @@ from constants import *
 @dataclass(frozen=True)
 class Settings:
     clap_freq_index: int
-    threshold: int
-    gaussian_laplace_sigma: int
-    freq_gaussian_sigma: int
+    threshold: float
+    gaussian_laplace_sigma: float
+    freq_gaussian_sigma: float
 
     @staticmethod
     def from_array(arr):
@@ -26,7 +26,7 @@ class Settings:
 default_settings = Settings(
     clap_freq_index=1655,
     threshold=7750,
-    gaussian_laplace_sigma=1,
+    gaussian_laplace_sigma=0.7,
     freq_gaussian_sigma=117
 )
 max_settings = Settings(

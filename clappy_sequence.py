@@ -24,8 +24,10 @@ class ClappySequence:
 
     def on_clap(self, clap_frame_number):
         print('clap')
+        fps = self.clappy.sample_rate / CHUNK
+        clap_time = clap_frame_number / fps
         with self.lock:
-            t = time.time()
+            t = clap_time
             if self.sequence:
                 if t - self.sequence[0] > self.max_delay * (self.sequence_length + 3):
                     self.sequence = []

@@ -14,21 +14,24 @@ class EpsilonTransition(Enum):
     """
     epsilon = 0
 
+    def __repr__(self):
+        return 'ε'
+
 
 epsilon = EpsilonTransition.epsilon
 
 
 @dataclass(frozen=True)
-class FSMNode:
-    transitions: dict[Union[events.Event, EpsilonTransition], dict['FSMNode', set[Action]]] = \
-        field(default_factory=lambda: {})
+class NState:
+    transitions: dict[Union[events.Event, EpsilonTransition], dict['NState', set[Action]]] = \
+        field(default_factory=dict)
 
     def __hash__(self):
         return id(self)
 
     def add_transition(self,
                        event: Union[events.Event, EpsilonTransition],
-                       new_state: 'FSMNode',
+                       new_state: 'NState',
                        actions: Iterable[Action] = None):
         self.transitions \
             .setdefault(event, dict()) \
@@ -37,9 +40,12 @@ class FSMNode:
 
 
 @dataclass(frozen=True)
-class FSMachine:
-    start: FSMNode
-    end: FSMNode
+class NFSMachine:
+    """
+    Non-deterministic finite state machine.
+    """
+    start: NState
+    end: NState
 
 
 async def wait(t):

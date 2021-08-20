@@ -1,10 +1,11 @@
 import abc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Callable, Awaitable, Any
 
 
 class Action(abc.ABC):
     @abc.abstractmethod
-    def run(self):
+    async def run(self):
         pass
 
 
@@ -12,5 +13,14 @@ class Action(abc.ABC):
 class Print(Action):
     print_data: str
 
-    def run(self):
+    async def run(self):
         print(self.print_data)
+
+
+@dataclass(frozen=True)
+class Func(Action):
+    func: Callable[[], Awaitable[Any]] = field(repr=False)
+    tag : str
+
+    async def run(self):
+        await self.func()

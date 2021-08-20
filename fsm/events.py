@@ -8,19 +8,28 @@ class Event(abc.ABC):
     async def await_event(self):
         pass
 
+    def __rshift__(self, other: 'Event') -> 'Event':
+        return Sequence(self, other)
+
 
 @dataclass(frozen=True)
-class Clap(Event):
-    short_clap_queue: asyncio.Queue = field(repr=False, compare=False)
-    long_clap_queue: asyncio.Queue = field(repr=False, compare=False)
-
-    is_long: bool
+class Sequence(Event):
+    first: Event
+    second: Event
 
     async def await_event(self):
-        if self.is_long:
-            await self.long_clap_queue.get()
-        else:
-            await self.short_clap_queue.get()
+        await self.first.await_event()
+        await self.second.await_event()
+
+
+@dataclass(frozen=True)
+class OnNotify(Event):
+    condition: asyncio.Condition = field(repr=False, compare=False)
+    tag : str
+
+    async def await_event(self):
+        async with self.condition:
+            await self.condition.wait()
 
 
 @dataclass(frozen=True)

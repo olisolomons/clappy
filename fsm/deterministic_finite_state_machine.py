@@ -115,20 +115,24 @@ class DFSMachine:
                 for event in state.transitions
             }
 
-            done, pending = await asyncio.wait(event_tasks, return_when=asyncio.FIRST_COMPLETED)
+            try:
 
-            for pending_task in pending:
-                pending_task.cancel()
+                done, pending = await asyncio.wait(event_tasks, return_when=asyncio.FIRST_COMPLETED)
 
-            first_task = next(iter(done))
-            first_event = event_tasks[first_task]
+                for pending_task in pending:
+                    pending_task.cancel()
 
-            # go to next state
-            state, actions = state.transitions[first_event]
-            # do actions
-            for action in actions:
-                await action.run()
+                first_task = next(iter(done))
+                first_event = event_tasks[first_task]
 
+                # go to next state
+                state, actions = state.transitions[first_event]
+                # do actions
+                for action in actions:
+                    await action.run()
+            except asyncio.CancelledError as e:
+                for task in event_tasks:
+                    if not task.cancelled():
+                        task.cancel()
 
-
-
+                raise e

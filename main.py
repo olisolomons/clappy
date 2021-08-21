@@ -6,8 +6,14 @@ from typing import Union
 
 import settings
 from clappy_sequence import ClappySequence
+from clappy_sequence_regex import ClappySequenceRegex
 import subprocess
 import fire
+
+import fsm.regular_expressions as rex
+from fsm.events import Wait
+from fsm.actions import Print, Action
+from fsm.notifier import Notifier
 
 
 def press(device, key):
@@ -24,14 +30,37 @@ def press(device, key):
         )
 
 
+def generate_regex(clap: Notifier) -> rex.RegularExpression:
+    play_pause = clap.event_re() >> (
+            rex.Event(Wait(0.75)) >> rex.Event(Wait(1.25))
+            | clap.event_re() >> (
+                    rex.Event(Wait(0.75)) >> rex.Event(Wait(1.25))
+                    | clap.event_re({Print('play_pause')})
+            )
+    )
+    skip_left = clap.event_re() >> (
+            rex.Event(Wait(0.75)) >> rex.Event(Wait(1.25))
+            | clap.event_re() >> (
+                    rex.Event(Wait(0.75)) >> (
+                    rex.Event(Wait(1.25))
+                    | clap.event_re({Print('play_pause')}) >>
+                    rex.Many(
+                        clap.event_re({Print('left')})
+                    ) >>
+                    rex.Event(Wait(2))  # this should be re-run for every loop of the "Many", allowing an exit
+
+            )
+            )
+    )
+
+    return play_pause | skip_left
+
+
 def clappy(verbose: bool = False, threshold: Union[int, str] = 'auto'):
     print('Listening for claps!')
     use_settings = dataclasses.replace(settings.default_settings, threshold=threshold)
 
-    clappy_sequence = ClappySequence([
-        lambda key=key: (print(key), press('/dev/input/event3', key))
-        for key in ['KEY_PLAYPAUSE', 'KEY_LEFT', 'KEY_RIGHT']
-    ], settings=use_settings)
+    clappy_sequence = ClappySequenceRegex(generate_regex, settings=use_settings)
 
     if threshold == 'auto':
         def turn_off_auto_delayed():

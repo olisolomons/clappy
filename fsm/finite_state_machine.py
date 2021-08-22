@@ -46,36 +46,3 @@ class NFSMachine:
     """
     start: NState
     end: NState
-
-
-async def wait(t):
-    try:
-        await asyncio.sleep(t)
-        print(f'done, {t=}')
-    except asyncio.CancelledError as e:
-        print(f'cancelled {t=}')
-        print(e)
-
-
-async def race(aws):
-    tasks = [asyncio.create_task(co) for co in aws]
-    task_map = {task: i for i, task in enumerate(tasks)}
-    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-    for task in pending:
-        task.cancel()
-        print('cancelling a task')
-    print(f'{tasks.index(list(done)[0])=}')
-    print(f'{task_map[list(done)[0]]=}')
-
-
-async def a():
-    await race([wait(2), wait(5), wait(2.1)])
-    print('done a')
-
-
-async def main():
-    await asyncio.wait([asyncio.create_task(a()), asyncio.create_task(wait(7))])
-
-
-if __name__ == '__main__':
-    asyncio.run(main())

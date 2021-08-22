@@ -130,9 +130,9 @@ class DFSMachine:
                 # do actions
                 for action in actions:
                     await action.run()
-            except asyncio.CancelledError as e:
+            except asyncio.CancelledError:
                 for task in event_tasks:
                     if not task.cancelled():
                         task.cancel()
 
-                raise e
+                raise

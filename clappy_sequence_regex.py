@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, Optional
+from typing import Callable, Optional, TypeVar, Generic, Awaitable
 import threading
 from clappy import Clappy
 from constants import CHUNK
@@ -8,21 +8,28 @@ from settings import Settings, default_settings
 from fsm import notifier, regular_expressions as rex
 from fsm.deterministic_finite_state_machine import DFSMachine
 
+_T = TypeVar('_T')
 
-class ClappySequenceRegex:
+
+async def default_make_async_objects():
+    pass
+
+
+class ClappySequenceRegex(Generic[_T]):
     def __init__(self,
-                 generate_regex: Callable[[notifier.Notifier], rex.RegularExpression],
-                 settings: Settings = default_settings):
+                 generate_regex: Callable[[notifier.Notifier, _T], rex.RegularExpression],
+                 settings: Settings = default_settings,
+                 make_async_objects: Callable[[], Awaitable[_T]] = default_make_async_objects):
         self.clappy = Clappy(self.on_clap, settings=settings)
 
         self.generate_regex = generate_regex
+        self.make_async_objects = make_async_objects
 
         self.clap_notifier: Optional[notifier.Notifier] = None
         self.machine_loop: Optional[asyncio.AbstractEventLoop] = None
         self.termination_notifier: Optional[asyncio.Lock] = None
 
     def on_clap(self, clap_frame_number):
-        print('clap')
         fps = self.clappy.sample_rate / CHUNK
         clap_time = clap_frame_number / fps
 
@@ -34,17 +41,17 @@ class ClappySequenceRegex:
         asyncio.set_event_loop(self.machine_loop)
 
         self.clap_notifier = notifier.Notifier('clap')
-        machine = DFSMachine.from_regular_expression(self.generate_regex(self.clap_notifier))
 
         self.termination_notifier = asyncio.Lock()
 
-        async def run_machine_loop():
-            while True:
-                await machine.run()
-
         async def run_machine_terminable():
             await self.termination_notifier.acquire()
-            run_machine_task = asyncio.create_task(run_machine_loop())
+
+            user_async_objects = await self.make_async_objects()
+            regex = self.generate_regex(self.clap_notifier, user_async_objects)
+            machine = DFSMachine.from_regular_expression(regex)
+
+            run_machine_task = asyncio.create_task(machine.run())
 
             await asyncio.wait([
                 run_machine_task,

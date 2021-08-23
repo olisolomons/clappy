@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, Optional, TypeVar, Generic, Awaitable
+from typing import Callable, Optional, Awaitable
 import threading
 from clappy import Clappy
 from constants import CHUNK
@@ -8,22 +8,18 @@ from settings import Settings, default_settings
 from fsm import notifier, regular_expressions as rex
 from fsm.deterministic_finite_state_machine import DFSMachine
 
-_T = TypeVar('_T')
-
 
 async def default_make_async_objects():
     pass
 
 
-class ClappySequenceRegex(Generic[_T]):
+class ClappySequenceRegex:
     def __init__(self,
-                 generate_regex: Callable[[notifier.Notifier, _T], rex.RegularExpression],
-                 settings: Settings = default_settings,
-                 make_async_objects: Callable[[], Awaitable[_T]] = default_make_async_objects):
+                 generate_regex: Callable[[notifier.Notifier], Awaitable[rex.RegularExpression]],
+                 settings: Settings = default_settings):
         self.clappy = Clappy(self.on_clap, settings=settings)
 
         self.generate_regex = generate_regex
-        self.make_async_objects = make_async_objects
 
         self.clap_notifier: Optional[notifier.Notifier] = None
         self.machine_loop: Optional[asyncio.AbstractEventLoop] = None
@@ -47,8 +43,7 @@ class ClappySequenceRegex(Generic[_T]):
         async def run_machine_terminable():
             await self.termination_notifier.acquire()
 
-            user_async_objects = await self.make_async_objects()
-            regex = self.generate_regex(self.clap_notifier, user_async_objects)
+            regex = await self.generate_regex(self.clap_notifier)
             machine = DFSMachine.from_regular_expression(regex)
 
             run_machine_task = asyncio.create_task(machine.run())

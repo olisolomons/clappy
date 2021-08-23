@@ -33,6 +33,17 @@ def press(device, key):
         )
 
 
+def set_mic(un_muted: bool):
+    subprocess.run(
+        ['/usr/bin/env',
+         'amixer',
+         'set',
+         'Capture',
+         'cap' if un_muted else 'nocap'
+         ], stdout=subprocess.PIPE
+    )
+
+
 @dataclass(frozen=True)
 class Press(Action):
     key: str
@@ -141,7 +152,9 @@ def clappy(verbose: bool = False, threshold: Union[int, str] = 'auto'):
     else:
         finished_calibration.notify(clappy_sequence.machine_loop)
 
+    set_mic(True)
     clappy_sequence.listen(verbose=verbose)
+    set_mic(False)
 
 
 if __name__ == '__main__':

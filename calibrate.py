@@ -6,7 +6,7 @@ from typing import Tuple, Callable, Any, Optional
 
 import numpy as np
 
-from clappy import Clappy
+from clap_detector import ClapDetector
 from settings import Settings
 
 
@@ -25,7 +25,7 @@ class Calibrator:
         def raise_error():
             raise RuntimeError()
 
-        self.capturing_clappy = Clappy(raise_error)
+        self.capturing_clap_detector = ClapDetector(raise_error)
         self.labelled_chunks: list[Tuple[list[np.ndarray], bool]] = []
 
         if restore_state_bytes is not None:
@@ -34,11 +34,11 @@ class Calibrator:
                 ([np.array(chunk, dtype=np.int16) for chunk in chunks], label)
                 for chunks, label in restore_state['labelled_chunks']
             ]
-            self.capturing_clappy.sample_rate = restore_state['sample_rate']
+            self.capturing_clap_detector.sample_rate = restore_state['sample_rate']
 
     def capture(self) -> None:
-        self.capturing_clappy.connect()
-        stream = self.capturing_clappy.stream()
+        self.capturing_clap_detector.connect()
+        stream = self.capturing_clap_detector.stream()
         choices = {
             'y': ('yes, I just clapped', lambda: True),
             'n': ('no, I didn\'t clap', lambda: False),
@@ -82,7 +82,7 @@ class Calibrator:
             raise ValueError('Cannot call score_settings before labelling some chunks')
 
         @dataclass
-        class ClappyReport:
+        class ClapReport:
             clapped = False
 
             def reset(self):
@@ -91,10 +91,10 @@ class Calibrator:
             def report_clap(self):
                 self.clapped = True
 
-        clappy_report = ClappyReport()
+        clap_report = ClapReport()
 
-        clappy = Clappy(clappy_report.report_clap, settings=settings)
-        clappy.copy_state(self.capturing_clappy)
+        clap_detector = ClapDetector(clap_report.report_clap, settings=settings)
+        clap_detector.copy_state(self.capturing_clap_detector)
 
         correct_count = 0
 
@@ -102,14 +102,14 @@ class Calibrator:
         labelled_chunks_copy = list(self.labelled_chunks)
 
         for chunks, contains_clap in labelled_chunks_copy:
-            clappy.listen(iter(chunks))
+            clap_detector.listen(iter(chunks))
             if verbose:
-                print(f'{clappy_report.clapped=}; {contains_clap=}')
+                print(f'{clap_report.clapped=}; {contains_clap=}')
 
-            if clappy_report.clapped == contains_clap:
+            if clap_report.clapped == contains_clap:
                 correct_count += 1
 
-            clappy_report.reset()
+            clap_report.reset()
 
         return correct_count / len(labelled_chunks_copy)
 
@@ -119,7 +119,7 @@ class Calibrator:
                 ([chunk.tolist() for chunk in chunks], label)
                 for chunks, label in self.labelled_chunks
             ],
-            'sample_rate': self.capturing_clappy.sample_rate
+            'sample_rate': self.capturing_clap_detector.sample_rate
         }
         return json.dumps(json_ready_state).encode('utf-8')
 

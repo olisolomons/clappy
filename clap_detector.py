@@ -26,7 +26,7 @@ class AudioStream:
             pass
 
 
-class Clappy:
+class ClapDetector:
     def __init__(self, on_clap: Callable[[int], Any], settings: Settings = default_settings) -> None:
         self.audio: Optional[pyaudio.PyAudio] = None
         self.amplitudes_history: Optional[np.ndarray] = None
@@ -41,7 +41,7 @@ class Clappy:
 
         self.on_clap = on_clap
 
-    def copy_state(self, other: 'Clappy'):
+    def copy_state(self, other: 'ClapDetector'):
         self.sample_rate = other.sample_rate
         self.amplitudes_history = np.zeros(self.seconds_to_buffer_size(AMPLITUDES_HISTORY_SECONDS))
 
@@ -140,6 +140,6 @@ class Clappy:
 
 
 def clappy_test(settings: Settings = default_settings, *, verbose=False):
-    clappy = Clappy(lambda: print("clap!"), settings=settings)
+    clappy = ClapDetector(lambda: print("clap!"), settings=settings)
     clappy.connect(verbose=verbose)
     clappy.listen(verbose=verbose)

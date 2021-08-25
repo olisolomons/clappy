@@ -3,18 +3,18 @@ from threading import Lock, Thread
 
 import numpy as np
 
-from clappy import Clappy
+from clap_detector import ClapDetector
 from constants import CHUNK
 from settings import Settings, default_settings
 
 
-class ClappySequence:
+class ClapSequenceBinary:
     def __init__(self, options, settings: Settings = default_settings, max_delay=1.5, min_delay=0.05):
         self.options = options
         self.sequence_length = int(np.ceil(np.log2(len(options) + 1)))
         self.sequence = []
 
-        self.clappy = Clappy(self.on_clap, settings=settings)
+        self.clap_detector = ClapDetector(self.on_clap, settings=settings)
 
         self.min_delay = min_delay
         self.max_delay = max_delay
@@ -24,7 +24,7 @@ class ClappySequence:
 
     def on_clap(self, clap_frame_number):
         print('clap')
-        fps = self.clappy.sample_rate / CHUNK
+        fps = self.clap_detector.sample_rate / CHUNK
         clap_time = clap_frame_number / fps
         with self.lock:
             t = clap_time
@@ -72,5 +72,5 @@ class ClappySequence:
             command_function()
 
     def listen(self, *, verbose=False):
-        self.clappy.connect(verbose=verbose)
-        self.clappy.listen(verbose=verbose)
+        self.clap_detector.connect(verbose=verbose)
+        self.clap_detector.listen(verbose=verbose)

@@ -8,8 +8,8 @@ from threading import Thread
 from typing import Union, Optional, Tuple, Callable
 
 import settings
-from clappy_sequence import ClappySequence
-from clappy_sequence_regex import ClappySequenceRegex
+from clap_sequence_binary import ClapSequenceBinary
+from clap_sequence_regex import ClapSequenceRegex
 import subprocess
 import fire
 
@@ -127,7 +127,7 @@ def clappy(verbose: bool = False, threshold: Union[int, str] = 'auto'):
     use_settings = dataclasses.replace(settings.default_settings, threshold=threshold)
     clap_program = ClapProgram()
 
-    clappy_sequence = ClappySequenceRegex(
+    clappy_sequence = ClapSequenceRegex(
         clap_program.generate_regex,
         settings=use_settings
     )

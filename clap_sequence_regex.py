@@ -1,7 +1,7 @@
 import asyncio
 from typing import Callable, Optional, Awaitable
 import threading
-from clappy import Clappy
+from clap_detector import ClapDetector
 from constants import CHUNK
 from settings import Settings, default_settings
 
@@ -9,15 +9,11 @@ from fsm import notifier, regular_expressions as rex
 from fsm.deterministic_finite_state_machine import DFSMachine
 
 
-async def default_make_async_objects():
-    pass
-
-
-class ClappySequenceRegex:
+class ClapSequenceRegex:
     def __init__(self,
                  generate_regex: Callable[[notifier.Notifier], Awaitable[rex.RegularExpression]],
                  settings: Settings = default_settings):
-        self.clappy = Clappy(self.on_clap, settings=settings)
+        self.clappy = ClapDetector(self.on_clap, settings=settings)
 
         self.generate_regex = generate_regex
 

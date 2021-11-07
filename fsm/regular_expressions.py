@@ -24,7 +24,7 @@ class RegularExpression(abc.ABC):
 @dataclass(frozen=True)
 class Event(RegularExpression):
     event: BaseEvent
-    actions: set[Action] = field(default_factory=set)
+    actions: set[Action] = frozenset()
 
     def to_fsm(self) -> NFSMachine:
         start = NState()

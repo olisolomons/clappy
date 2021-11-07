@@ -17,7 +17,8 @@ import fsm.regular_expressions as rex
 from fsm.events import Wait
 from fsm.actions import Print, Action
 from fsm.notifier import Notifier
-
+from websocket_listener import WebSocketListener
+from pathlib import Path
 
 def press(device, key):
     for value in (1, 0):
@@ -151,5 +152,19 @@ def clappy(verbose: bool = False, threshold: Union[int, str] = 'auto'):
     set_mic(False)
 
 
+def websocket():
+    with (Path(__file__).parent/'secret.txt').open('r') as secret_file:
+        secret = secret_file.read().strip()
+    key: Callable[[str], None] = functools.partial(press, '/dev/input/event3')
+    listener = WebSocketListener("wss://clappy-play-pause.glitch.me/video-player",
+                                 secret,
+                                 {
+        'playpause': lambda: key('KEY_PLAYPAUSE'),
+        'back': lambda: key('KEY_LEFT'),
+        'forward': lambda: key('KEY_RIGHT'),
+    })
+    listener.listen()
+
+
 if __name__ == '__main__':
-    fire.Fire(clappy)
+    fire.Fire()

@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 from fsm.events import OnNotify
 from fsm.actions import Func
+from fsm import actions
 import fsm.regular_expressions as rex
 
 @dataclass(frozen=True)
@@ -18,8 +19,8 @@ class Notifier:
             self.condition.notify_all()
         await asyncio.sleep(0.05)
 
-    def action(self):
+    def action(self) -> actions.Action:
         return Func(self.notify, self.tag)
 
-    def event_re(self, actions=None):
-        return rex.Event(self.event(), set() if actions is None else actions)
+    def event_re(self, actions=frozenset()) -> rex.Event:
+        return rex.Event(self.event(), actions)

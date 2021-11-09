@@ -20,6 +20,7 @@ from fsm.notifier import Notifier
 from websocket_listener import WebSocketListener
 from pathlib import Path
 
+
 def press(device, key):
     for value in (1, 0):
         subprocess.run(
@@ -153,16 +154,52 @@ def clappy(verbose: bool = False, threshold: Union[int, str] = 'auto'):
 
 
 def websocket():
-    with (Path(__file__).parent/'secret.txt').open('r') as secret_file:
-        secret = secret_file.read().strip()
     key: Callable[[str], None] = functools.partial(press, '/dev/input/event3')
-    listener = WebSocketListener("wss://clappy-play-pause.glitch.me/video-player",
-                                 secret,
-                                 {
-        'playpause': lambda: key('KEY_PLAYPAUSE'),
-        'back': lambda: key('KEY_LEFT'),
-        'forward': lambda: key('KEY_RIGHT'),
-    })
+
+    class App:
+        def __init__(self):
+            self.use_space = False
+
+        def play_pause(self):
+            if self.use_space:
+                key('KEY_SPACE')
+            else:
+                key('KEY_PLAYPAUSE')
+
+        @staticmethod
+        def back():
+            key('KEY_LEFT')
+
+        @staticmethod
+        def forward():
+            key('KEY_RIGHT')
+
+        @staticmethod
+        def skip():
+            key('KEY_S')
+
+        def change_use_space(self, msg):
+            self.use_space = msg['value']
+            print(f'{self.use_space=}')
+
+        def auto_actions(self, *action_names):
+            return {act: getattr(self, act) for act in action_names}
+
+        def actions(self):
+            return self.auto_actions('back', 'forward', 'skip') | {
+                'playpause': self.play_pause,
+                'use-space': self.change_use_space,
+            }
+
+    app = App()
+
+    with (Path(__file__).parent / 'secret.txt').open('r') as secret_file:
+        secret = secret_file.read().strip()
+    listener = WebSocketListener(
+        "wss://clappy-play-pause.glitch.me/video-player",
+        secret,
+        app.actions()
+    )
     listener.listen()
 
 

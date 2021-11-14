@@ -198,7 +198,8 @@ def websocket():
     listener = WebSocketListener(
         "wss://clappy-play-pause.glitch.me/video-player",
         secret,
-        app.actions()
+        app.actions(),
+        bump_url='https://clappy-play-pause.glitch.me/bump'
     )
     listener.listen()
 
